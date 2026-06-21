@@ -76,8 +76,7 @@ The cursor line always shows raw Markdown source so you can see what you are edi
 
 ## Configuration
 
-All variables are optional.
-Set them in your `vimrc` before the plugin loads.
+All variables are optional. Set them in your `vimrc` before the plugin loads.
 
 ```vim
 " Prevent auto-activation on file open (use :MdRenderEnable manually)
@@ -99,10 +98,77 @@ let g:mdrender_max_file_size = 204800
 let g:mdrender_cursor_reveal = 0
 ```
 
+### Themes
+
+Control the colour scheme for all `MdXxx` highlight groups with `g:mdrender_theme`.
+
+**Built-in themes:**
+
+| Name | Description |
+|:-----|:------------|
+| `'auto'` | *(default)* Each group links to a colorscheme semantic group (`Title`, `Statement`, …) and adapts to whatever theme is active |
+| `'dark'` | Opinionated dark palette (One Dark-inspired). Best with `termguicolors` and a dark background |
+| `'light'` | Opinionated light palette (GitHub-inspired). Best with `termguicolors` and a light background |
+| `'minimal'` | Style-only — no colour at all. Heading levels are distinguished by bold/italic/underline combinations |
+
+```vim
+let g:mdrender_theme = 'dark'
+```
+
+**User theme files:**
+
+Any name that is not a built-in triggers a file search across `runtimepath`.
+Create `mdrender/themes/<name>.vim` anywhere on your runtimepath and assign the
+palette to `g:mdrender_theme_def`:
+
+```vim
+" ~/.config/vim/mdrender/themes/ocean.vim
+let g:mdrender_theme_def = {
+\   'MdH1': 'guifg=#96cbfe gui=bold ctermfg=75 cterm=bold',
+\   'MdH2': 'guifg=#7ec8e3 gui=bold ctermfg=74 cterm=bold',
+\   'MdH3': 'guifg=#99d1f5 gui=bold ctermfg=117 cterm=bold',
+\ }
+```
+
+```vim
+" vimrc
+let g:mdrender_theme = 'ocean'
+```
+
+Only the groups you specify are overridden — absent groups fall through to the
+`'auto'` colorscheme links. Third-party plugins can ship themes the same way.
+
+**Inline dict:**
+
+Pass the palette directly without a file:
+
+```vim
+let g:mdrender_theme = {
+\   'MdH1': 'guifg=#ff6688 gui=bold ctermfg=210 cterm=bold',
+\   'MdH2': 'guifg=#ffaa33 gui=bold ctermfg=215 cterm=bold',
+\ }
+```
+
+**Per-group overrides** always win over any theme — place them in a `ColorScheme`
+autocmd so they survive theme switches:
+
+```vim
+autocmd ColorScheme * hi MdH1 guifg=#ff0000 gui=bold
+```
+
+To reload the theme after changing `g:mdrender_theme` at runtime:
+
+```vim
+:doautocmd ColorScheme
+```
+
 ## Highlight groups
 
-All groups link to standard Vim semantic groups and adapt automatically to your colorscheme.
-Override them after your colorscheme loads:
+In `'auto'` mode (the default), all groups link to standard Vim semantic groups
+and adapt automatically to your colorscheme. Named or file-based themes replace
+those links with fixed colours or styles.
+
+Override any individual group after your colorscheme loads:
 
 ```vim
 autocmd ColorScheme * hi MdH1 guifg=#ff6688 gui=bold

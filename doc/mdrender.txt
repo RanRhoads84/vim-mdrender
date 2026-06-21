@@ -2,7 +2,7 @@
 
 Author:   vim-mdrender contributors
 License:  GPL v2
-Version:  0.1.0
+Version:  0.2.0
 
 ==============================================================================
 CONTENTS						*mdrender-contents*
@@ -79,8 +79,11 @@ Disable auto-enable and control it manually: >vim
 Opt specific elements out: >vim
     let g:mdrender_elements = {'tables': v:false, 'hr': v:false}
 <
-Override a highlight colour: >vim
-    hi MdH1 guifg=#ff6688 gui=bold
+Apply a built-in theme: >vim
+    let g:mdrender_theme = 'dark'    " or 'light', 'minimal', 'auto'
+<
+Override a highlight colour (beats any theme): >vim
+    autocmd ColorScheme * hi MdH1 guifg=#ff6688 gui=bold
 <
 ==============================================================================
 5. Commands						*mdrender-commands*
@@ -335,7 +338,10 @@ The plugin is split across five modules under autoload/mdrender/:
 		module calls Cfg.Get() rather than accessing g: directly.
 
   highlight.vim Defines all MdXxx highlight groups using `hi def`. Setup()
-		and Teardown() are idempotent — safe to call multiple times.
+		applies the active theme first (built-in palette, user file from
+		runtimepath, or inline dict), then falls back to `hi def link`
+		for any group the theme did not cover. Teardown() clears all
+		groups. Both are idempotent — safe to call multiple times.
 
   parser.vim    ParseRange(bufnr, top, bot) classifies lines into typed
 		tokens using a single-pass state machine. The only state
