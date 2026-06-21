@@ -14,6 +14,14 @@ vim9script
 if exists('g:loaded_mdrender') | finish | endif
 g:loaded_mdrender = 1
 
+# Generate help tags on first load if the tags file doesn't exist yet.
+# `expand('<sfile>:p:h:h')` resolves to the plugin root regardless of where
+# it is installed — :h strips the filename, second :h strips plugin/.
+var s_doc = expand('<sfile>:p:h:h') .. '/doc'
+if !filereadable(s_doc .. '/tags')
+  silent! execute 'helptags ' .. fnameescape(s_doc)
+endif
+
 if !has('textprop') || !has('conceal') || !has('timers')
   echohl ErrorMsg
   echom 'vim-mdrender requires +textprop +conceal +timers (use a +huge build)'
