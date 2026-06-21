@@ -1,0 +1,286 @@
+*mdrender.txt*	Native Markdown rendering for Vim		*vim-mdrender*
+
+Author:   vim-mdrender contributors
+License:  MIT
+Version:  0.1.0
+
+==============================================================================
+CONTENTS						*mdrender-contents*
+
+  1. Introduction ........... |mdrender-intro|
+  2. Requirements ........... |mdrender-requirements|
+  3. Installation ........... |mdrender-install|
+  4. Quick start ............. |mdrender-quickstart|
+  5. Commands ................ |mdrender-commands|
+  6. Configuration ........... |mdrender-config|
+  7. Highlight groups ........ |mdrender-highlights|
+  8. Rendered elements ........ |mdrender-elements|
+  9. Architecture notes ....... |mdrender-architecture|
+
+==============================================================================
+1. Introduction						*mdrender-intro*
+
+vim-mdrender renders Markdown files visually inside Vim using two display
+layers that cooperate without ever modifying buffer content:
+
+  Syntax / conceal layer ~
+    Inline markers (**,*,`,~~,[]) are hidden using Vim's built-in |conceal|
+    feature. The surrounding text receives highlight groups (bold, italic,
+    etc.) via `syntax region ... concealends` rules.
+
+  Text-property layer ~
+    Block-level decorations — code-block backgrounds, horizontal rules
+    rendered as a full-width line, table header highlighting — are applied
+    via |prop_add()| with range highlighting and virtual text.
+
+The buffer content is never modified. Toggling the plugin off restores the
+original display exactly.
+
+==============================================================================
+2. Requirements						*mdrender-requirements*
+
+  - Vim 9.0 or later (Vim9 script, virtual text in |prop_add()|)
+  - |+textprop| compiled in: `has('textprop')` must return 1
+  - |+conceal|  compiled in: `has('conceal')`  must return 1
+
+Check both at once: >vim
+    echo has('textprop') && has('conceal')
+<
+Both features are included in the default `+huge` build on all platforms.
+
+==============================================================================
+3. Installation						*mdrender-install*
+
+vim-plug: >vim
+    Plug 'your-user/vim-mdrender'
+<
+Vim built-in packages: >sh
+    git clone https://github.com/your-user/vim-mdrender \
+        ~/.vim/pack/plugins/start/vim-mdrender
+    vim -u NONE -c 'helptags ALL' -c q
+<
+The plugin activates automatically for any buffer with `filetype=markdown`.
+
+==============================================================================
+4. Quick start						*mdrender-quickstart*
+
+Open a Markdown file — rendering is on by default.
+
+Toggle off and on: >vim
+    :MdRenderToggle
+<
+Disable auto-enable and control it manually: >vim
+    " In vimrc
+    let g:mdrender_enabled = 0
+
+    " Then in a markdown buffer:
+    :MdRenderEnable
+<
+Opt specific elements out: >vim
+    let g:mdrender_elements = {'tables': v:false, 'hr': v:false}
+<
+Override a highlight colour: >vim
+    hi MdH1 guifg=#ff6688 gui=bold
+<
+==============================================================================
+5. Commands						*mdrender-commands*
+
+:MdRenderEnable					*:MdRenderEnable*
+	Enable rendering in the current buffer. Sets |conceallevel| to 2,
+	installs syntax groups, registers text properties, and performs the
+	first render pass.
+
+:MdRenderDisable				*:MdRenderDisable*
+	Disable rendering. Removes all plugin syntax groups, text properties,
+	and highlight definitions. Restores the user's original |conceallevel|.
+
+:MdRenderToggle					*:MdRenderToggle*
+	Toggle rendering on or off in the current buffer.
+
+==============================================================================
+6. Configuration					*mdrender-config*
+
+All options are global variables. Set them in your vimrc.
+
+						*g:mdrender_enabled*
+g:mdrender_enabled (default: 1) ~
+	Set to 0 to prevent the plugin from auto-activating on markdown files.
+	You can still call |:MdRenderEnable| manually. >vim
+	    let g:mdrender_enabled = 0
+<
+						*g:mdrender_conceallevel*
+g:mdrender_conceallevel (default: 2) ~
+	The |conceallevel| value applied while rendering is active.
+	  0  — no concealment (rendering has no visual effect)
+	  1  — concealed text replaced by a single substitution character
+	  2  — concealed text completely hidden (recommended)
+	  3  — concealed text hidden including the |cchar| replacement >vim
+	    let g:mdrender_conceallevel = 1
+<
+						*g:mdrender_max_file_size*
+g:mdrender_max_file_size (default: 204800) ~
+	Files larger than this many bytes are skipped. Large files make the
+	parser slow and the syntax engine expensive. Default is 200 KiB. >vim
+	    let g:mdrender_max_file_size = 524288   " 512 KiB
+<
+						*g:mdrender_debounce_ms*
+g:mdrender_debounce_ms (default: 150) ~
+	Milliseconds of typing inactivity before a re-render is triggered.
+	Lower values feel more responsive; higher values reduce CPU usage
+	during fast typing. >vim
+	    let g:mdrender_debounce_ms = 300
+<
+						*g:mdrender_cursor_reveal*
+g:mdrender_cursor_reveal (default: 1) ~
+	When 1 (default), the cursor line always shows raw Markdown source
+	in all modes. This is achieved by setting |concealcursor| to empty,
+	which is Vim's built-in mechanism for cursor-line reveal. Set to 0
+	to conceal the cursor line as well. >vim
+	    let g:mdrender_cursor_reveal = 0
+<
+						*g:mdrender_render_pad*
+g:mdrender_render_pad (default: 50) ~
+	Number of lines above and below the visible window to pre-render.
+	A higher value reduces flicker when scrolling fast at the cost of
+	parsing and property-insertion work on invisible lines. >vim
+	    let g:mdrender_render_pad = 100
+<
+						*g:mdrender_elements*
+g:mdrender_elements (default: all enabled) ~
+	A dict controlling which Markdown elements are rendered. Keys not
+	present in the user's dict default to enabled. >vim
+	    let g:mdrender_elements = {
+	    \   'tables':  v:false,
+	    \   'hr':      v:false,
+	    \   'tasks':   v:false,
+	    \ }
+<
+	Available keys:
+	    headings, bold, italic, code_inline, code_block, links,
+	    strikethrough, blockquotes, hr, lists, tasks, tables
+
+						*g:mdrender_bullet_chars*
+g:mdrender_bullet_chars (default: ['•', '◦', '▪']) ~
+	Three Unicode characters used as bullet replacements for unordered
+	list items at indent depths 0, 1, and 2+. >vim
+	    let g:mdrender_bullet_chars = ['-', '·', '·']
+<
+==============================================================================
+7. Highlight groups					*mdrender-highlights*
+
+All groups are defined with |hi-def| so user or colorscheme definitions
+take priority. Override any group after your colorscheme loads: >vim
+    autocmd ColorScheme * hi MdH1 guifg=#ff6688 gui=bold
+<
+	Group		Element
+	─────────	──────────────────────────────────────────
+	MdH1		Heading level 1
+	MdH2		Heading level 2
+	MdH3		Heading level 3
+	MdH4		Heading level 4
+	MdH5		Heading level 5
+	MdH6		Heading level 6
+	MdBold		Bold text (**text**)
+	MdItalic	Italic text (*text*)
+	MdBoldItalic	Bold and italic (***text***)
+	MdStrike	Strikethrough (~~text~~)
+	MdCodeInline	Inline code span (`code`)
+	MdCodeBlock	Fenced code block background
+	MdCodeLang	Language tag on fenced blocks
+	MdLink		Link label text ([label](url))
+	MdLinkDelim	Concealed link delimiters
+	MdBlockquote	Blockquote body text
+	MdBlockquoteMark Blockquote ┃ bar character
+	MdHRule		Horizontal rule virtual text
+	MdListBullet	Unordered list bullet (•)
+	MdTaskTodo	Unchecked task (☐)
+	MdTaskDone	Checked task (☑)
+	MdTableBorder	Table separator row
+	MdTableHeader	Table header row
+
+==============================================================================
+8. Rendered elements					*mdrender-elements*
+
+Headings ~
+	ATX headings # through ######. The leading `# ` prefix is concealed
+	and the rest of the line is highlighted with MdH1–MdH6. Setext-style
+	headings (underlined with = or -) are not currently rendered.
+
+Bold / Italic / Bold-Italic ~
+	**bold**, *italic*, ***bold-italic***. The delimiter characters are
+	concealed via |concealends|. Both `**`/`__` (bold) and `*`/`_`
+	(italic) marker styles are supported.
+
+Inline code ~
+	`code spans`. The surrounding backticks are concealed; the body
+	text is highlighted with MdCodeInline.
+
+Strikethrough ~
+	~~text~~. Delimiters concealed; body highlighted with MdStrike.
+
+Links ~
+	[label](url). The `[`, `]`, `(`, url, and `)` are all concealed,
+	leaving only the label visible. The label is highlighted with MdLink.
+	Image syntax ![alt](url) is treated as a plain link for now.
+
+Blockquotes ~
+	Lines beginning with `> `. The `> ` prefix is concealed and replaced
+	with a ┃ bar character (MdBlockquoteMark highlight).
+
+Horizontal rules ~
+	Lines matching `---`, `***`, or `___` (three or more characters,
+	optional spaces). The line content is concealed and replaced with a
+	`─` line spanning the window width via a text property.
+
+Fenced code blocks ~
+	Triple-backtick (```) and triple-tilde (~~~) fences. The fence lines
+	are concealed; body lines receive a MdCodeBlock background highlight
+	via text properties. An optional language tag on the opening fence
+	is concealed with the MdCodeLang highlight.
+
+Lists ~
+	Unordered: `-`, `*`, `+` bullets are replaced with • (depth 0),
+	◦ (depth 1), or ▪ (depth 2+). Configurable via |g:mdrender_bullet_chars|.
+	Ordered: numbered items are not currently re-rendered.
+
+Task lists ~
+	- [ ] todo →  ☐  (MdTaskTodo)
+	- [x] done →  ☑  (MdTaskDone)
+
+Tables ~
+	The row above the first `|---|---|` separator is highlighted as a
+	header (MdTableHeader). The separator row itself is highlighted with
+	MdTableBorder. Column pipe characters are not currently replaced.
+
+==============================================================================
+9. Architecture notes					*mdrender-architecture*
+
+The plugin is split across five modules under autoload/mdrender/:
+
+  config.vim    Central accessor for all g:mdrender_* globals. Every other
+		module calls Cfg.Get() rather than accessing g: directly.
+
+  highlight.vim Defines all MdXxx highlight groups using `hi def`. Setup()
+		and Teardown() are idempotent — safe to call multiple times.
+
+  parser.vim    ParseRange(bufnr, top, bot) classifies lines into typed
+		tokens using a single-pass state machine. The only state
+		between lines is whether we are inside a fenced code block.
+		Inline elements are NOT parsed here — they are handled by
+		Vim's syntax engine.
+
+  conceal.vim   Installs syntax rules (syntax match / syntax region) using
+		Vim's |conceal| and |concealends| features for inline elements.
+		Rules are installed once per buffer in Enable() and require no
+		per-render work — Vim evaluates them automatically on redraw.
+
+  props.vim     Manages text properties (|prop_add|, |prop_remove|) for
+		block-level decorations that need virtual text or range
+		backgrounds. Re-applied on every render pass for the visible
+		range ± render_pad lines.
+
+  mdrender.vim  Orchestrator. Holds per-buffer state (_state dict), wires
+		autocmd events to render cycles, implements the debounce
+		timer, and manages the Enable/Disable lifecycle.
+
+ vim:tw=78:ts=8:noet:ft=help:norl:
