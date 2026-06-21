@@ -25,7 +25,7 @@ export def Enable()
 
   var bufnr = bufnr('%')
 
-  if _FileTooLarge(bufnr)
+  if FileTooLarge_(bufnr)
     return
   endif
 
@@ -51,7 +51,7 @@ export def Enable()
     cursor_lnum:  -1,
   }
 
-  _Render(bufnr)
+  Render_(bufnr)
 enddef
 
 export def Disable()
@@ -92,15 +92,15 @@ enddef
 
 export def OnBufWinEnter()
   var bufnr = bufnr('%')
-  if _IsEnabled(bufnr)
-    _Render(bufnr)
+  if IsEnabled_(bufnr)
+    Render_(bufnr)
   endif
 enddef
 
 export def OnScroll()
   var bufnr = bufnr('%')
-  if _IsEnabled(bufnr)
-    _Render(bufnr)
+  if IsEnabled_(bufnr)
+    Render_(bufnr)
   endif
 enddef
 
@@ -113,14 +113,14 @@ export def OnTextChanged()
     return
   endif
 
-  var st = _state[key]
+  var st    = _state[key]
   if st.timer_id >= 0
     timer_stop(st.timer_id)
     st.timer_id = -1
   endif
 
   var delay = Cfg.Get('debounce_ms', 150)
-  st.timer_id = timer_start(delay, (_) => _OnDebounceExpired(bufnr))
+  st.timer_id = timer_start(delay, (_) => OnDebounceExpired_(bufnr))
 enddef
 
 # Reveal the raw source on the cursor line so the user can see the markers
@@ -145,13 +145,16 @@ export def OnCursorMoved()
 enddef
 
 # ── Private helpers ───────────────────────────────────────────────────────────
+#
+# Vim9 script requires all script-level `def` functions to start with an
+# uppercase letter. Trailing underscores mark these as plugin-private.
 
-def _OnDebounceExpired(bufnr: number)
+def OnDebounceExpired_(bufnr: number)
   var key = string(bufnr)
   if has_key(_state, key)
     _state[key].timer_id = -1
   endif
-  _Render(bufnr)
+  Render_(bufnr)
 enddef
 
 # Core render loop:
@@ -162,7 +165,7 @@ enddef
 #
 # The conceal (syntax) layer is installed once in Enable() and requires no
 # per-render work — Vim's syntax engine handles it on every redraw automatically.
-def _Render(bufnr: number)
+def Render_(bufnr: number)
   var winid = bufwinid(bufnr)
   if winid < 0
     return
@@ -181,12 +184,12 @@ def _Render(bufnr: number)
   Props.Apply(bufnr, tokens)
 enddef
 
-def _IsEnabled(bufnr: number): bool
+def IsEnabled_(bufnr: number): bool
   var key = string(bufnr)
   return has_key(_state, key) && _state[key].enabled
 enddef
 
-def _FileTooLarge(bufnr: number): bool
+def FileTooLarge_(bufnr: number): bool
   var limit = Cfg.Get('max_file_size', 204800)
   return getfsize(bufname(bufnr)) > limit
 enddef

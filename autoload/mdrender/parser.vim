@@ -57,9 +57,12 @@ export def ParseRange(bufnr: number, top: number, bot: number): list<dict<any>>
     var tok: dict<any>
 
     if in_fence
-      # Closing fence: same character repeated ≥3 times, optional trailing space
-      var close_pat = '^' .. fence_fence .. '\{3,}\s*$'
-      if line =~# close_pat
+      # Match the closing fence using the same char as the opener.
+      # Tildes must be escaped in regex patterns — bare `~` is the "last
+      # substitution" atom in Vim's regex engine (E33 otherwise).
+      var is_close = (fence_fence ==# '`' && line =~# '^```\s*$')
+                  || (fence_fence ==# '~' && line =~# '^\~\~\~\s*$')
+      if is_close
         tok = {lnum: lnum, type: T_FENCE_END, meta: {lang: fence_lang}}
         in_fence    = false
         fence_fence = ''
@@ -78,8 +81,8 @@ export def ParseRange(bufnr: number, top: number, bot: number): list<dict<any>>
       fence_fence = '`'
       fence_lang  = lang
 
-    elseif line =~# '^~~~'
-      var lang = matchstr(line, '^~~~\zs\S*')
+    elseif line =~# '^\~\~\~'
+      var lang = matchstr(line, '^\~\~\~\zs\S*')
       tok = {lnum: lnum, type: T_FENCE_START, meta: {lang: lang}}
       in_fence    = true
       fence_fence = '~'

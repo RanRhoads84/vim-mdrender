@@ -18,6 +18,8 @@ const OWNED_GROUPS = [
   'MdLinkLabel', 'MdLinkDelimOpen', 'MdLinkURL',
   'MdListBullet', 'MdTaskTodo', 'MdTaskDone',
   'MdBlockquoteMark',
+  'MdHRuleMark',
+  'MdCodeFenceMark',
 ]
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -29,25 +31,31 @@ export def Apply()
   var el = Cfg.Elements()
 
   if el.headings
-    _Headings()
+    Headings_()
   endif
   if el.bold || el.italic
-    _Emphasis(el.bold, el.italic)
+    Emphasis_(el.bold, el.italic)
   endif
   if el.code_inline
-    _CodeInline()
+    CodeInline_()
+  endif
+  if el.code_block
+    CodeFence_()
   endif
   if el.strikethrough
-    _Strikethrough()
+    Strikethrough_()
   endif
   if el.links
-    _Links()
+    Links_()
   endif
   if el.lists || el.tasks
-    _Lists(el.lists, el.tasks)
+    Lists_(el.lists, el.tasks)
   endif
   if el.blockquotes
-    _Blockquotes()
+    Blockquotes_()
+  endif
+  if el.hr
+    Hr_()
   endif
 enddef
 
@@ -69,7 +77,7 @@ enddef
 # The marker pattern `^#{N} ` is unambiguous per heading level because a
 # line starting with `## text` has two # chars followed by a space — the
 # H1 pattern `^# ` does not match it (the second char is `#`, not ` `).
-def _Headings()
+def Headings_()
   for level in [1, 2, 3, 4, 5, 6]
     var hashes    = repeat('#', level)
     var mark_grp  = 'MdH' .. level .. 'Mark'
@@ -88,14 +96,10 @@ enddef
 # names the highlight applied to the delimiters; it does not need to be a
 # Conceal-linked group because `concealends` handles the hiding.
 #
-# Priority: bold-italic (***) must be defined before bold (**) and italic (*)
-# to prevent the two-star opener from being consumed first.
-def _Emphasis(do_bold: bool, do_italic: bool)
-  if do_bold && do_italic
-    execute 'syntax region MdBoldItalic matchgroup=MdBoldItalicDelim'
-          .. ' start=/\*\*\*\ze\S/ end=/\S\zs\*\*\*/ oneline concealends'
-  endif
-
+# Vim gives priority to the LAST-defined syntax item when multiple match at
+# the same column. Bold and italic are defined first so that bold-italic
+# (defined last) wins over plain bold at `***text***`.
+def Emphasis_(do_bold: bool, do_italic: bool)
   if do_bold
     execute 'syntax region MdBold matchgroup=MdBoldDelim'
           .. ' start=/\*\*\ze\S/ end=/\S\zs\*\*/ oneline concealends'
@@ -109,16 +113,31 @@ def _Emphasis(do_bold: bool, do_italic: bool)
     execute 'syntax region MdItalic matchgroup=MdItalicDelim'
           .. ' start=/_\ze[^_\s]/ end=/[^_\s]\zs_/ oneline concealends'
   endif
+
+  if do_bold && do_italic
+    execute 'syntax region MdBoldItalic matchgroup=MdBoldItalicDelim'
+          .. ' start=/\*\*\*\ze\S/ end=/\S\zs\*\*\*/ oneline concealends'
+  endif
 enddef
 
 # Inline code: conceal the surrounding backticks.
-def _CodeInline()
+# The start pattern `\ze[^`]` prevents matching the first backtick of a
+# triple-backtick fence (``` opens a fence, not an inline span).
+def CodeInline_()
   execute 'syntax region MdCodeInline matchgroup=MdCodeInlineMark'
-        .. ' start=/`/ end=/`/ oneline concealends'
+        .. ' start=/`\ze[^`]/ end=/`/ oneline concealends'
+enddef
+
+# Fenced code blocks: conceal the ``` / ~~~ fence delimiter lines.
+# These must be defined AFTER CodeInline_ so that the fence pattern,
+# being last-defined, wins over the inline-code region at the same column.
+def CodeFence_()
+  execute 'syntax match MdCodeFenceMark /^```\S*\s*$/ conceal'
+  execute 'syntax match MdCodeFenceMark /^\~\~\~\S*\s*$/ conceal'
 enddef
 
 # Strikethrough: conceal ~~ delimiters.
-def _Strikethrough()
+def Strikethrough_()
   execute 'syntax region MdStrike matchgroup=MdStrikeDelim'
         .. ' start=/\~\~\ze\S/ end=/\S\zs\~\~/ oneline concealends'
 enddef
@@ -128,7 +147,7 @@ enddef
 # The region spans from `[` to the closing `)`. Two contained matches
 # conceal the brackets and URL, leaving the label text visible with
 # the MdLinkLabel highlight applied by the outer region's group name.
-def _Links()
+def Links_()
   execute 'syntax match MdLinkDelimOpen /\[/ contained conceal'
   execute 'syntax match MdLinkURL /\](.\{-})/ contained conceal'
   execute 'syntax region MdLinkLabel'
@@ -139,25 +158,29 @@ enddef
 
 # Lists: replace bullet chars with Unicode; task checkboxes with ☐ / ☑.
 #
-# Task patterns must be defined first — they are more specific supersets
-# of the plain list pattern, and Vim's syntax engine uses first-match
-# priority for overlapping patterns at the same column.
-def _Lists(do_lists: bool, do_tasks: bool)
-  if do_tasks
-    execute 'syntax match MdTaskDone'
-          .. ' /^\s*[-*+] \[x\] / conceal cchar=☑'
-    execute 'syntax match MdTaskTodo'
-          .. ' /^\s*[-*+] \[ \] / conceal cchar=☐'
-  endif
+# Vim gives priority to the LAST-defined pattern when two patterns start at
+# the same column. Tasks must therefore be defined AFTER the plain bullet
+# so that `- [x] ` is consumed by MdTaskDone rather than MdListBullet.
+def Lists_(do_lists: bool, do_tasks: bool)
   if do_lists
-    # `cchar` replaces the concealed text with the given character.
-    # A single • is used here; indent-depth-aware bullets are handled
-    # by the props layer which can inspect the indent meta from the parser.
     execute 'syntax match MdListBullet /^\s*[-*+]\ze / conceal cchar=•'
+  endif
+  if do_tasks
+    # Stop before the trailing space so `☑ task text` retains its space.
+    execute 'syntax match MdTaskDone'
+          .. ' /^\s*[-*+] \[x\]/ conceal cchar=☑'
+    execute 'syntax match MdTaskTodo'
+          .. ' /^\s*[-*+] \[ \]/ conceal cchar=☐'
   endif
 enddef
 
 # Blockquotes: conceal `> ` and replace with a ┃ bar character.
-def _Blockquotes()
+def Blockquotes_()
   execute 'syntax match MdBlockquoteMark /^> / conceal cchar=┃'
+enddef
+
+# Horizontal rules: conceal the raw `---` / `***` / `___` line so the
+# props layer can inject virtual text in its place without overlap.
+def Hr_()
+  execute 'syntax match MdHRuleMark /^[-*_]\{3,}\s*$/ conceal'
 enddef

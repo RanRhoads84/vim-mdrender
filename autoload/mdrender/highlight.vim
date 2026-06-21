@@ -52,12 +52,12 @@ enddef
 # Remove all plugin-owned highlight groups.
 # Called by Disable() so a clean slate is left when rendering is off.
 export def Teardown()
-  for g in _AllGroups()
+  for g in AllGroups_()
     execute 'hi clear ' .. g
   endfor
 enddef
 
-def _AllGroups(): list<string>
+def AllGroups_(): list<string>
   return [
     'MdH1', 'MdH2', 'MdH3', 'MdH4', 'MdH5', 'MdH6',
     'MdBold', 'MdItalic', 'MdBoldItalic', 'MdStrike',

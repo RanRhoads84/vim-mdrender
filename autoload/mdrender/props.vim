@@ -17,13 +17,13 @@ const TYPE_TBL_SEP     = 'mdrender_tablesep'
 # ── Public API ────────────────────────────────────────────────────────────────
 
 # Register all text-property types with Vim.
-# Safe to call multiple times — _EnsureType() skips already-registered types.
+# Safe to call multiple times — EnsureType_() skips already-registered types.
 export def RegisterTypes()
-  _EnsureType(TYPE_CODEBLOCK,  {highlight: 'MdCodeBlock'})
-  _EnsureType(TYPE_HR,         {highlight: 'MdHRule'})
-  _EnsureType(TYPE_BLOCKQUOTE, {highlight: 'MdBlockquote'})
-  _EnsureType(TYPE_TBL_HEADER, {highlight: 'MdTableHeader'})
-  _EnsureType(TYPE_TBL_SEP,    {highlight: 'MdTableBorder'})
+  EnsureType_(TYPE_CODEBLOCK,  {highlight: 'MdCodeBlock'})
+  EnsureType_(TYPE_HR,         {highlight: 'MdHRule'})
+  EnsureType_(TYPE_BLOCKQUOTE, {highlight: 'MdBlockquote'})
+  EnsureType_(TYPE_TBL_HEADER, {highlight: 'MdTableHeader'})
+  EnsureType_(TYPE_TBL_SEP,    {highlight: 'MdTableBorder'})
 enddef
 
 # Walk a token list and attach text properties to bufnr.
@@ -37,7 +37,7 @@ export def Apply(bufnr: number, tokens: list<dict<any>>)
   endif
 
   var el = Cfg.Elements()
-  _ClearRange(bufnr, tokens[0].lnum, tokens[-1].lnum)
+  ClearRange_(bufnr, tokens[0].lnum, tokens[-1].lnum)
 
   var i = 0
   while i < len(tokens)
@@ -64,12 +64,12 @@ export def Apply(bufnr: number, tokens: list<dict<any>>)
     # ── Horizontal rule ───────────────────────────────────────────────────
     # Inject virtual text spanning the window width. The conceal layer
     # hides the raw `---` / `***` / `___` content; this prop adds the
-    # visual replacement after the (now empty) line.
+    # visual replacement. text_align requires col=0 (E1294 otherwise).
     elseif el.hr && tok.type == Parser.T_HR
-      prop_add(tok.lnum, 1, {
+      prop_add(tok.lnum, 0, {
         bufnr:      bufnr,
         type:       TYPE_HR,
-        text:       repeat('─', winwidth(0) - 1),
+        text:       repeat('─', winwidth(0)),
         text_align: 'right',
       })
 
@@ -107,29 +107,29 @@ enddef
 # Remove all plugin text properties from bufnr entirely.
 # Called on :MdRenderDisable.
 export def Teardown(bufnr: number)
-  _ClearAll(bufnr)
+  ClearAll_(bufnr)
 enddef
 
 # ── Private helpers ───────────────────────────────────────────────────────────
 
-def _ClearRange(bufnr: number, top: number, bot: number)
-  for t in _AllTypes()
+def ClearRange_(bufnr: number, top: number, bot: number)
+  for t in AllTypes_()
     prop_remove({type: t, bufnr: bufnr, all: 1, start_lnum: top, end_lnum: bot})
   endfor
 enddef
 
-def _ClearAll(bufnr: number)
-  for t in _AllTypes()
+def ClearAll_(bufnr: number)
+  for t in AllTypes_()
     prop_remove({type: t, bufnr: bufnr, all: 1})
   endfor
 enddef
 
-def _EnsureType(name: string, opts: dict<any>)
+def EnsureType_(name: string, opts: dict<any>)
   if empty(prop_type_get(name))
     prop_type_add(name, opts)
   endif
 enddef
 
-def _AllTypes(): list<string>
+def AllTypes_(): list<string>
   return [TYPE_CODEBLOCK, TYPE_HR, TYPE_BLOCKQUOTE, TYPE_TBL_HEADER, TYPE_TBL_SEP]
 enddef
