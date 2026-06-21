@@ -1,7 +1,7 @@
 *mdrender.txt*	Native Markdown rendering for Vim		*vim-mdrender*
 
 Author:   vim-mdrender contributors
-License:  MIT
+License:  GPL v2
 Version:  0.1.0
 
 ==============================================================================
