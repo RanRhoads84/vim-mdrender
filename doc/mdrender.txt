@@ -165,15 +165,57 @@ g:mdrender_bullet_chars (default: ['•', '◦', '▪']) ~
 	list items at indent depths 0, 1, and 2+. >vim
 	    let g:mdrender_bullet_chars = ['-', '·', '·']
 <
+						*g:mdrender_theme*
+g:mdrender_theme (default: 'auto') ~
+	Choose a colour scheme for the MdXxx highlight groups. Accepts either
+	a string naming a built-in theme or an inline dict that maps group
+	names to highlight attribute strings.
+
+	Built-in theme names: ~
+	  'auto'    Current behaviour: every group links to a colorscheme
+		    semantic group (Title, Statement, ...) so colours follow
+		    whatever theme is active. This is the default.
+	  'dark'    Opinionated dark palette (One Dark-inspired). Requires
+		    a dark background and 'termguicolors'.
+	  'light'   Opinionated light palette (GitHub-inspired). Requires
+		    a light background and 'termguicolors'.
+	  'minimal' Style-only: no colour at all. Heading levels are
+		    distinguished by bold/italic/underline combinations only.
+
+	Named theme: >vim
+	    let g:mdrender_theme = 'dark'
+	<
+	Inline dict - keys are MdXxx group names, values are the attribute
+	string you would write after the group name in :highlight: >vim
+	    let g:mdrender_theme = {
+	    \   'MdH1': 'guifg=#ff6688 gui=bold ctermfg=210 cterm=bold',
+	    \   'MdH2': 'guifg=#ffaa33 gui=bold ctermfg=215 cterm=bold',
+	    \ }
+	<
+	Any group not present in the dict falls back to the 'auto' links,
+	so a partial dict lets you override only what you care about.
+
+	The theme is applied via |hi-def| so explicit user overrides always
+	win: a |:highlight| command for any MdXxx group that runs after
+	plugin initialisation (e.g. in a |ColorScheme| autocmd) takes
+	precedence over the theme. >vim
+	    autocmd ColorScheme * hi MdH1 guifg=#ff0000 gui=bold
+	<
+	To switch themes at runtime, change the variable and reload: >vim
+	    :doautocmd ColorScheme
+	<
 ==============================================================================
 7. Highlight groups					*mdrender-highlights*
 
-All groups link to standard Vim semantic groups so they automatically
-follow the active colorscheme — no hardcoded colours. The plugin
-re-runs highlight setup on every |ColorScheme| event so groups survive
-theme switches (most colorschemes call |:hi-clear| on load).
+When |g:mdrender_theme| is 'auto' (the default), all groups link to
+standard Vim semantic groups so they automatically follow the active
+colorscheme — no hardcoded colours. Named themes ('dark', 'light',
+'minimal') replace these links with fixed colour or style definitions.
 
-Override any group after your colorscheme loads: >vim
+The plugin re-runs highlight setup on every |ColorScheme| event so groups
+survive theme switches (most colorschemes call |:hi-clear| on load).
+
+Override any group after your colorscheme loads — this beats the theme: >vim
     autocmd ColorScheme * hi MdH1 guifg=#ff6688 gui=bold
 <
 	Group		Links to	Element
