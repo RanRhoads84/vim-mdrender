@@ -167,9 +167,8 @@ g:mdrender_bullet_chars (default: ['•', '◦', '▪']) ~
 <
 						*g:mdrender_theme*
 g:mdrender_theme (default: 'auto') ~
-	Choose a colour scheme for the MdXxx highlight groups. Accepts either
-	a string naming a built-in theme or an inline dict that maps group
-	names to highlight attribute strings.
+	Choose a colour scheme for the MdXxx highlight groups. Accepts a
+	string naming a built-in or user-defined theme, or an inline dict.
 
 	Built-in theme names: ~
 	  'auto'    Current behaviour: every group links to a colorscheme
@@ -185,23 +184,48 @@ g:mdrender_theme (default: 'auto') ~
 	Named theme: >vim
 	    let g:mdrender_theme = 'dark'
 	<
-	Inline dict - keys are MdXxx group names, values are the attribute
-	string you would write after the group name in :highlight: >vim
+	User theme files ~
+
+	Any name that is not a built-in triggers a file search. The plugin
+	looks for `mdrender/themes/<name>.vim` in every directory in
+	'runtimepath'. The file must assign the theme dict to the global
+	variable `g:mdrender_theme_def`: >vim
+
+	    " Example: ~/.config/vim/mdrender/themes/ocean.vim
+	    let g:mdrender_theme_def = {
+	    \   'MdH1': 'guifg=#96cbfe gui=bold ctermfg=75 cterm=bold',
+	    \   'MdH2': 'guifg=#7ec8e3 gui=bold ctermfg=74 cterm=bold',
+	    \   'MdH3': 'guifg=#99d1f5 gui=bold ctermfg=117 cterm=bold',
+	    \ }
+	<
+	    " Then in vimrc:
+	    let g:mdrender_theme = 'ocean'
+	<
+	The plugin clears `g:mdrender_theme_def` immediately after reading it.
+	Any group absent from the dict falls through to the 'auto' links, so
+	partial theme files are valid.
+
+	Third-party plugins can ship themes by placing them under
+	`mdrender/themes/` anywhere in 'runtimepath'.
+
+	Inline dict ~
+
+	Keys are MdXxx group names; values are the attribute string you would
+	write after the group name in :highlight: >vim
 	    let g:mdrender_theme = {
 	    \   'MdH1': 'guifg=#ff6688 gui=bold ctermfg=210 cterm=bold',
 	    \   'MdH2': 'guifg=#ffaa33 gui=bold ctermfg=215 cterm=bold',
 	    \ }
 	<
-	Any group not present in the dict falls back to the 'auto' links,
-	so a partial dict lets you override only what you care about.
+	Overrides and reload ~
 
 	The theme is applied via |hi-def| so explicit user overrides always
 	win: a |:highlight| command for any MdXxx group that runs after
 	plugin initialisation (e.g. in a |ColorScheme| autocmd) takes
-	precedence over the theme. >vim
+	precedence. >vim
 	    autocmd ColorScheme * hi MdH1 guifg=#ff0000 gui=bold
 	<
-	To switch themes at runtime, change the variable and reload: >vim
+	To switch themes at runtime, change the variable then reload: >vim
 	    :doautocmd ColorScheme
 	<
 ==============================================================================

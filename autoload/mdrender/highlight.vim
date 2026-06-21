@@ -147,19 +147,26 @@ export def Teardown()
   endfor
 enddef
 
-# Apply g:mdrender_theme if it names a built-in theme or is an inline dict.
-# Called at the top of Setup() so theme groups are defined before the
-# `hi def link` fallbacks — making those fallbacks no-ops for themed groups.
+# Apply g:mdrender_theme if it names a built-in theme, a user theme file,
+# or is an inline dict. Called at the top of Setup() so theme groups are
+# defined before the `hi def link` fallbacks — making those fallbacks
+# no-ops for themed groups.
 def ApplyTheme_()
   var raw: any = get(g:, 'mdrender_theme', 'auto')
   var attrs: dict<string>
 
   if type(raw) == v:t_string
     var name: string = raw
-    if name ==# 'auto' || !has_key(s_themes, name)
+    if name ==# 'auto'
       return
+    elseif has_key(s_themes, name)
+      attrs = s_themes[name]
+    else
+      attrs = LoadFileTheme_(name)
+      if empty(attrs)
+        return
+      endif
     endif
-    attrs = s_themes[name]
   elseif type(raw) == v:t_dict
     attrs = raw
   else
@@ -169,6 +176,45 @@ def ApplyTheme_()
   for [group, attr] in items(attrs)
     execute 'hi def ' .. group .. ' ' .. attr
   endfor
+enddef
+
+# Load a user-defined theme file from the runtimepath.
+#
+# Searches for `mdrender/themes/<name>.vim` across all runtimepath entries.
+# The file must assign a dict of MdXxx → attr-string pairs to the global
+# variable g:mdrender_theme_def, which is read and then immediately cleared.
+#
+# Returns an empty dict if the file is not found or sets no valid dict.
+def LoadFileTheme_(name: string): dict<string>
+  # Guard against path traversal — only plain identifiers are allowed.
+  if name !~# '^[A-Za-z0-9_-]\+$'
+    return {}
+  endif
+
+  var path: string = findfile('mdrender/themes/' .. name .. '.vim', &runtimepath)
+  if empty(path)
+    return {}
+  endif
+
+  # Clear any stale value, source the file, then harvest g:mdrender_theme_def.
+  unlet! g:mdrender_theme_def
+  execute 'source ' .. fnameescape(path)
+
+  if !exists('g:mdrender_theme_def') || type(g:mdrender_theme_def) != v:t_dict
+    unlet! g:mdrender_theme_def
+    return {}
+  endif
+
+  # Convert from dict<any> (set by legacy vimscript in the theme file) to
+  # dict<string>, silently dropping any entry whose value is not a string.
+  var result: dict<string> = {}
+  for [k, v] in items(g:mdrender_theme_def)
+    if type(v) == v:t_string
+      result[k] = v
+    endif
+  endfor
+  unlet g:mdrender_theme_def
+  return result
 enddef
 
 def AllGroups_(): list<string>
