@@ -168,39 +168,43 @@ g:mdrender_bullet_chars (default: ['•', '◦', '▪']) ~
 ==============================================================================
 7. Highlight groups					*mdrender-highlights*
 
-All groups use |hi-def-link| so they automatically follow the active
-colorscheme — no hardcoded colours. Override any group after your
-colorscheme loads: >vim
+All groups link to standard Vim semantic groups so they automatically
+follow the active colorscheme — no hardcoded colours. The plugin
+re-runs highlight setup on every |ColorScheme| event so groups survive
+theme switches (most colorschemes call |:hi-clear| on load).
+
+Override any group after your colorscheme loads: >vim
     autocmd ColorScheme * hi MdH1 guifg=#ff6688 gui=bold
 <
-The plugin re-runs highlight setup on every |ColorScheme| event so groups
-survive theme switches (most colorschemes call |:hi-clear| on load).
+	Group		Links to	Element
+	─────────	──────────	──────────────────────────────────
+	MdH1		Title		Heading level 1
+	MdH2		Statement	Heading level 2
+	MdH3		Type		Heading level 3
+	MdH4		Special		Heading level 4
+	MdH5		Identifier	Heading level 5
+	MdH6		Comment		Heading level 6
+	MdBold		(bold only)	Bold text (**text**)
+	MdItalic	(italic only)	Italic text (*text*)
+	MdBoldItalic	(bold+italic)	Bold and italic (***text***)
+	MdStrike	(strikethrough)	Strikethrough (~~text~~)
+	MdCodeInline	String		Inline code span (`code`)
+	MdCodeBlock	CursorLine	Fenced code block background
+	MdCodeLang	Comment		Language tag on fenced blocks
+	MdLink		Underlined	Link label text ([label](url))
+	MdLinkDelim	NonText		Concealed link delimiters
+	MdBlockquote	Comment		Blockquote body text
+	MdBlockquoteMark Special	Blockquote ┃ bar character
+	MdHRule		NonText		Horizontal rule virtual text
+	MdListBullet	Special		Unordered list bullet (•)
+	MdTaskTodo	Todo		Unchecked task (☐)
+	MdTaskDone	Comment		Checked task (☑)
+	MdTableBorder	NonText		Table separator row
+	MdTableHeader	Statement	Table header row
 
-	Group		Element
-	─────────	──────────────────────────────────────────
-	MdH1		Heading level 1
-	MdH2		Heading level 2
-	MdH3		Heading level 3
-	MdH4		Heading level 4
-	MdH5		Heading level 5
-	MdH6		Heading level 6
-	MdBold		Bold text (**text**)
-	MdItalic	Italic text (*text*)
-	MdBoldItalic	Bold and italic (***text***)
-	MdStrike	Strikethrough (~~text~~)
-	MdCodeInline	Inline code span (`code`)
-	MdCodeBlock	Fenced code block background
-	MdCodeLang	Language tag on fenced blocks
-	MdLink		Link label text ([label](url))
-	MdLinkDelim	Concealed link delimiters
-	MdBlockquote	Blockquote body text
-	MdBlockquoteMark Blockquote ┃ bar character
-	MdHRule		Horizontal rule virtual text
-	MdListBullet	Unordered list bullet (•)
-	MdTaskTodo	Unchecked task (☐)
-	MdTaskDone	Checked task (☑)
-	MdTableBorder	Table separator row
-	MdTableHeader	Table header row
+Note: MdBold, MdItalic, MdBoldItalic, and MdStrike apply only a text
+style (gui=bold etc.) with no colour change, so emphasis text stays the
+same colour as surrounding normal text.
 
 ==============================================================================
 8. Rendered elements					*mdrender-elements*
