@@ -49,13 +49,13 @@ A result of `1` means your build is compatible.
 ### vim-plug
 
 ```vim
-Plug 'username/vim-mdrender'
+Plug 'RanRhoads84/vim-mdrender'
 ```
 
 ### Vim built-in packages
 
 ```sh
-git clone https://github.com/username/vim-mdrender \
+git clone https://github.com/RanRhoads84/vim-mdrender \
     ~/.vim/pack/plugins/start/vim-mdrender
 ```
 
