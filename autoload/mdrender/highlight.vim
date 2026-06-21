@@ -2,51 +2,60 @@ vim9script
 
 # ── Highlight group definitions ──────────────────────────────────────────────
 #
-# All groups use `hi def` so a user's colorscheme or manual `hi` command
-# always wins. Groups are named with the MdXxx prefix to avoid clashing
-# with other plugins or Vim's built-in groups.
+# All groups use `hi def link` so they automatically follow the active
+# colorscheme. `hi def link X Y` is a live pointer: every redraw resolves X
+# through Y's current definition, so theme switches take effect immediately
+# without any extra work.
 #
-# GUI colours are from the One Dark palette (Atom-derived) — a reasonable
-# neutral choice that works on both dark and light terminals when the
-# cterm fallbacks are set appropriately.
+# Setup() is re-run on every ColorScheme event (see plugin/mdrender.vim)
+# because most colorschemes call `hi clear`, which wipes linked groups.
+#
+# To override a group, define it after your colorscheme loads:
+#   autocmd ColorScheme * hi MdH1 guifg=#ff6688 gui=bold
 
 export def Setup()
-  # Headings — bold text, a distinct colour per level
-  hi def MdH1 gui=bold guifg=#e06c75 cterm=bold ctermfg=203
-  hi def MdH2 gui=bold guifg=#e5c07b cterm=bold ctermfg=221
-  hi def MdH3 gui=bold guifg=#98c379 cterm=bold ctermfg=114
-  hi def MdH4 gui=bold guifg=#56b6c2 cterm=bold ctermfg=73
-  hi def MdH5 gui=bold guifg=#61afef cterm=bold ctermfg=75
-  hi def MdH6 gui=bold guifg=#c678dd cterm=bold ctermfg=176
+  # Headings: different semantic groups give a natural colour hierarchy
+  # without hardcoding any palette. Title is usually the most prominent;
+  # Comment is usually the most muted — matching the H1→H6 importance scale.
+  hi def link MdH1 Title
+  hi def link MdH2 Statement
+  hi def link MdH3 Type
+  hi def link MdH4 Special
+  hi def link MdH5 Identifier
+  hi def link MdH6 Comment
 
-  # Inline emphasis
-  hi def MdBold       gui=bold               cterm=bold
-  hi def MdItalic     gui=italic             cterm=italic
-  hi def MdBoldItalic gui=bold,italic        cterm=bold,italic
-  hi def MdStrike     gui=strikethrough      cterm=strikethrough
+  # Inline emphasis: style only, no colour override. Bold text stays the same
+  # colour as Normal — changing colour would contradict what bold means.
+  hi def MdBold       gui=bold              cterm=bold
+  hi def MdItalic     gui=italic            cterm=italic
+  hi def MdBoldItalic gui=bold,italic       cterm=bold,italic
+  hi def MdStrike     gui=strikethrough     cterm=strikethrough
 
-  # Code — inline spans get a subtle background; block background only
-  hi def MdCodeInline  guifg=#e06c75 guibg=#2d2d2d ctermfg=203 ctermbg=236
-  hi def MdCodeBlock   guibg=#2d2d2d ctermbg=236
-  hi def MdCodeLang    guifg=#5c6370 ctermfg=242
+  # Code: String for inline spans (already distinctly coloured in most themes),
+  # CursorLine for code block backgrounds (a subtle, theme-neutral fill).
+  hi def link MdCodeInline  String
+  hi def link MdCodeBlock   CursorLine
+  hi def link MdCodeLang    Comment
 
-  # Links — the label is underlined; the URL is dim (it will be concealed)
-  hi def MdLink      gui=underline guifg=#61afef cterm=underline ctermfg=75
-  hi def MdLinkDelim guifg=#5c6370 ctermfg=242
+  # Links: Vim's built-in Underlined group is the canonical choice for links.
+  hi def link MdLink      Underlined
+  hi def link MdLinkDelim NonText
 
-  # Blockquotes
-  hi def MdBlockquote     guifg=#abb2bf ctermfg=145
-  hi def MdBlockquoteMark guifg=#61afef ctermfg=75
+  # Blockquotes: body is secondary content (Comment); the ┃ bar is an accent
+  # mark (Special).
+  hi def link MdBlockquote     Comment
+  hi def link MdBlockquoteMark Special
 
-  # Structural / decorative
-  hi def MdHRule      guifg=#4b5263 ctermfg=239
-  hi def MdListBullet guifg=#e06c75 ctermfg=203
-  hi def MdTaskTodo   guifg=#e5c07b ctermfg=221
-  hi def MdTaskDone   guifg=#98c379 ctermfg=114
+  # Structural chrome: NonText is intentionally dim (line numbers, tilde
+  # column) — the same visual weight fits HR lines and table borders.
+  hi def link MdHRule      NonText
+  hi def link MdListBullet Special
+  hi def link MdTaskTodo   Todo
+  hi def link MdTaskDone   Comment
 
   # Tables
-  hi def MdTableBorder guifg=#4b5263 ctermfg=239
-  hi def MdTableHeader gui=bold cterm=bold
+  hi def link MdTableBorder NonText
+  hi def link MdTableHeader Statement
 enddef
 
 # Remove all plugin-owned highlight groups.

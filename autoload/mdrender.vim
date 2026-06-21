@@ -40,7 +40,7 @@ export def Enable()
   var cl_save = &l:conceallevel
   setlocal conceallevel=2
 
-  # concealcursor="" means the cursor line is always shown unconceal­ed,
+  # concealcursor="" means the cursor line is always shown unconcealed,
   # giving the user a clear view of what they are editing.
   setlocal concealcursor=
 
@@ -126,6 +126,10 @@ enddef
 # Reveal the raw source on the cursor line so the user can see the markers
 # they are editing. We do this by tracking the cursor line — the actual
 # reveal is handled by 'concealcursor' being empty (set in Enable()).
+export def OnColorScheme()
+  Hl.Setup()
+enddef
+
 export def OnCursorMoved()
   if !Cfg.Get('cursor_reveal', 1)
     return

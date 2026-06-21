@@ -168,10 +168,14 @@ g:mdrender_bullet_chars (default: ['•', '◦', '▪']) ~
 ==============================================================================
 7. Highlight groups					*mdrender-highlights*
 
-All groups are defined with |hi-def| so user or colorscheme definitions
-take priority. Override any group after your colorscheme loads: >vim
+All groups use |hi-def-link| so they automatically follow the active
+colorscheme — no hardcoded colours. Override any group after your
+colorscheme loads: >vim
     autocmd ColorScheme * hi MdH1 guifg=#ff6688 gui=bold
 <
+The plugin re-runs highlight setup on every |ColorScheme| event so groups
+survive theme switches (most colorschemes call |:hi-clear| on load).
+
 	Group		Element
 	─────────	──────────────────────────────────────────
 	MdH1		Heading level 1

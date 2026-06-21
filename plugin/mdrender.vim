@@ -24,6 +24,9 @@ augroup MdRender
   autocmd TextChangedI *.md,*.markdown call mdrender#OnTextChanged()
   autocmd CursorMoved *.md,*.markdown  call mdrender#OnCursorMoved()
   autocmd CursorMovedI *.md,*.markdown call mdrender#OnCursorMoved()
+  # Most colorschemes call `hi clear` on load, which wipes all linked groups.
+  # Re-run Setup() so MdXxx groups survive every theme switch.
+  autocmd ColorScheme *                call mdrender#OnColorScheme()
 augroup END
 
 # ── User commands ────────────────────────────────────────────────────────────
