@@ -1,8 +1,25 @@
+" Feature guard runs in legacy mode, before vim9script is parsed.
+" This ensures a clean error on Neovim or Vim < 9.0 rather than a
+" cryptic parse failure on the vim9script declaration itself.
+if !has('vim9script') || v:version < 900
+  echohl ErrorMsg
+  echom 'vim-mdrender requires Vim 9.0+'
+  echohl None
+  finish
+endif
+
 vim9script
 
 # Guard against double-loading.
 if exists('g:loaded_mdrender') | finish | endif
 g:loaded_mdrender = 1
+
+if !has('textprop') || !has('conceal') || !has('timers')
+  echohl ErrorMsg
+  echom 'vim-mdrender requires +textprop +conceal +timers (use a +huge build)'
+  echohl None
+  finish
+endif
 
 # ── Autocommands ────────────────────────────────────────────────────────────
 #
