@@ -25,7 +25,7 @@ Toggling the plugin off restores the original display exactly.
 | Links | `[label](url)` | URL hidden, label underlined |
 | Blockquotes | `> ` | Leading `> ` replaced with `┃` |
 | Horizontal rules | `---` / `***` / `___` | Full-width `─────` line |
-| Fenced code blocks | ` ``` ` / `~~~` | Fence lines hidden, body highlighted |
+| Fenced code blocks | 3x backticks / `~~~` | Fence lines hidden, body highlighted |
 | Unordered lists | `-` / `*` / `+` | Bullet replaced with `•` / `◦` / `▪` by depth |
 | Task lists | `- [x]` / `- [ ]` | `☑` / `☐` |
 | Tables | GFM table syntax | Header and separator rows highlighted |
